@@ -13,7 +13,7 @@ import { User } from '@/types'
 
 export default function ChatPage() {
   const { user } = useAuthStore()
-  const { selectedChatId, setSelectedChat, addChat } = useChatStore()
+  const { selectedChatId, setSelectedChat } = useChatStore()
   const { createDirectChat } = useChats()
   const [createChatOpen, setCreateChatOpen] = useState(false)
   const [chatParticipants, setChatParticipants] = useState<User[]>([])
@@ -60,9 +60,9 @@ export default function ChatPage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex h-screen bg-white">
-        {/* Sidebar - Mobile Hidden by default */}
-        <div className="hidden md:flex w-80 flex-col">
+      <div className="flex h-dvh overflow-hidden bg-white">
+        {/* Sidebar - desktop only */}
+        <div className="hidden md:flex w-80 flex-col shrink-0">
           <Sidebar
             selectedChatId={selectedChatId || ''}
             onSelectChat={handleSelectChat}
@@ -70,17 +70,36 @@ export default function ChatPage() {
           />
         </div>
 
-        {/* Chat Window */}
-        <div className="flex-1">
+        {/* Mobile chat list or chat view */}
+        <div className="flex-1 min-w-0 md:hidden">
+          {!selectedChatId ? (
+            <Sidebar
+              selectedChatId=""
+              onSelectChat={handleSelectChat}
+              onCreateChat={() => setCreateChatOpen(true)}
+            />
+          ) : currentChat ? (
+            <ChatWindow
+              chatId={selectedChatId}
+              chat={currentChat}
+              participants={chatParticipants}
+              onBack={() => setSelectedChat(null)}
+            />
+          ) : null}
+        </div>
+
+        {/* Desktop chat window */}
+        <div className="hidden md:flex flex-1 min-w-0">
           {selectedChatId && currentChat ? (
             <ChatWindow
               chatId={selectedChatId}
               chat={currentChat}
               participants={chatParticipants}
+              onBack={() => setSelectedChat(null)}
             />
           ) : (
-            <div className="flex items-center justify-center h-full bg-gray-50">
-              <div className="text-center">
+            <div className="flex items-center justify-center h-full w-full bg-gray-50">
+              <div className="text-center px-6">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">💬</span>
                 </div>
@@ -104,10 +123,6 @@ export default function ChatPage() {
           onSelectUser={handleCreateChat}
         />
 
-        {/* Mobile Sidebar - Only show on mobile */}
-        <div className="fixed inset-0 md:hidden z-40">
-          {/* You can add mobile sidebar overlay here */}
-        </div>
       </div>
     </ProtectedRoute>
   )

@@ -27,6 +27,7 @@ export function Sidebar({ selectedChatId, onSelectChat, onCreateChat }: SidebarP
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredChats, setFilteredChats] = useState(chats)
   const [chatSummaries, setChatSummaries] = useState<Record<string, ChatSummary>>({})
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const [directChatUsers, setDirectChatUsers] = useState<Record<string, any>>({})
   const [latestMessages, setLatestMessages] = useState<Record<string, string>>({})
 
@@ -52,13 +53,38 @@ export function Sidebar({ selectedChatId, onSelectChat, onCreateChat }: SidebarP
 
     loadChatSummaries()
 
+    const loadUnreadCounts = async () => {
+      if (!user || chats.length === 0) return
+
+      try {
+        const entries = await Promise.all(
+          chats.map(async (chat) => {
+            try {
+              const count = await chatService.getUnreadCount(chat.id, user.id)
+              return [chat.id, count] as const
+            } catch (error) {
+              return [chat.id, 0] as const
+            }
+          })
+        )
+
+        setUnreadCounts(Object.fromEntries(entries))
+      } catch (error) {
+        console.error('Failed to load unread counts:', error)
+      }
+    }
+
+    loadUnreadCounts()
+
     const intervalId = window.setInterval(() => {
       loadChatSummaries()
+      loadUnreadCounts()
       loadChats()
     }, 5000)
 
     const handleFocus = () => {
       loadChatSummaries()
+      loadUnreadCounts()
       loadChats()
     }
 
@@ -68,7 +94,7 @@ export function Sidebar({ selectedChatId, onSelectChat, onCreateChat }: SidebarP
       window.clearInterval(intervalId)
       window.removeEventListener('focus', handleFocus)
     }
-  }, [user, loadChats, selectedChatId])
+  }, [user, chats, loadChats, selectedChatId])
 
   useEffect(() => {
     // Fetch latest message per chat when summaries don't have one
@@ -202,6 +228,7 @@ export function Sidebar({ selectedChatId, onSelectChat, onCreateChat }: SidebarP
           filteredChats.map((chat) => (
             <ChatItem
               key={chat.id}
+              unreadCount={unreadCounts[chat.id] ?? chatSummaries[chat.id]?.unread_count ?? 0}
               chat={chat}
               lastMessage={
                 chatSummaries[chat.id]?.last_message || latestMessages[chat.id] || undefined
@@ -211,7 +238,6 @@ export function Sidebar({ selectedChatId, onSelectChat, onCreateChat }: SidebarP
                   ? directChatUsers[chat.id]
                   : undefined
               }
-              unreadCount={chatSummaries[chat.id]?.unread_count || 0}
               isSelected={chat.id === selectedChatId}
               onClick={() => onSelectChat(chat.id)}
             />

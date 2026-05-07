@@ -240,6 +240,17 @@ export const chatService = {
     return (data && data[0]) || null
   },
 
+  async getUnreadCount(chatId: string, userId: string): Promise<number> {
+    const { data, error } = await supabase.rpc('get_unread_count', {
+      chat_id_param: chatId,
+      user_id_param: userId,
+    })
+
+    if (error) throw error
+
+    return Number(data || 0)
+  },
+
   async addChatParticipant(chatId: string, userId: string): Promise<void> {
     const { error } = await supabase.from('chat_participants').insert({
       chat_id: chatId,

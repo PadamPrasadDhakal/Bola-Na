@@ -18,9 +18,10 @@ interface ChatWindowProps {
   chatId: string
   chat: any
   participants: User[]
+  onBack?: () => void
 }
 
-export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
+export function ChatWindow({ chatId, chat, participants, onBack }: ChatWindowProps) {
   const { user } = useAuthStore()
   const { messages, loadMessages, sendMessage, uploadMedia } = useMessages(chatId)
   const { sendTypingIndicator } = useRealtimeTyping(chatId)
@@ -140,19 +141,30 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="flex flex-col h-full md:h-screen bg-white">
       {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">{chat.name || participants[0]?.display_name}</h2>
-          <p className="text-xs text-gray-500">
-            {participants.length} {participants.length === 1 ? 'member' : 'members'}
-          </p>
+      <div className="flex items-center justify-between gap-3 p-3 sm:p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+        <div className="flex items-center gap-3 min-w-0">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-700"
+              aria-label="Back to chats"
+            >
+              ←
+            </button>
+          )}
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-900 truncate">{chat.name || participants[0]?.display_name}</h2>
+            <p className="text-xs text-gray-500">
+              {participants.length} {participants.length === 1 ? 'member' : 'members'}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2" id="messages-container">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 py-4 space-y-2" id="messages-container">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500">No messages yet. Start a conversation!</p>
@@ -202,11 +214,11 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
       )}
 
       {/* Input Area */}
-      <div className="border-t border-gray-200 bg-white p-4 sticky bottom-0">
-        <div className="flex gap-3">
+      <div className="border-t border-gray-200 bg-white p-3 sm:p-4 sticky bottom-0">
+        <div className="flex gap-2 sm:gap-3 items-end">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="text-gray-500 hover:text-blue-500 transition-colors"
+            className="text-gray-500 hover:text-blue-500 transition-colors shrink-0"
           >
             <Plus size={24} />
           </button>
@@ -224,7 +236,7 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
             onChange={handleTyping}
             onKeyDown={handleKeyDown}
             placeholder="Message..."
-            className="flex-1 text-black placeholder:text-gray-500"
+            className="flex-1 text-black placeholder:text-gray-500 min-h-[52px] sm:min-h-[72px]"
             rows={3}
           />
 
@@ -232,7 +244,7 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
             onClick={handleSendMessage}
             disabled={isLoading || (!messageText.trim() && !media)}
             size="md"
-            className="h-full"
+            className="h-[52px] sm:h-full shrink-0"
           >
             <Send size={20} />
           </Button>
