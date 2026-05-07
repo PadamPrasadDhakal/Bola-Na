@@ -13,6 +13,8 @@ interface MessageBubbleProps {
   timestamp: string
   isOwn: boolean
   isSeenByAll?: boolean
+  seenAt?: string | null
+  seenCount?: number
   isDivided?: boolean
   onReply?: () => void
 }
@@ -26,6 +28,8 @@ export function MessageBubble({
   timestamp,
   isOwn,
   isSeenByAll,
+  seenAt,
+  seenCount,
   isDivided,
   onReply,
 }: MessageBubbleProps) {
@@ -88,11 +92,17 @@ export function MessageBubble({
         >
           <span>{formatTime(timestamp)}</span>
           {isOwn && (
-            isSeenByAll ? (
-              <CheckCheck size={14} className="text-blue-500" />
-            ) : (
-              <Check size={14} />
-            )
+            <>
+              {isSeenByAll ? (
+                <CheckCheck size={14} className="text-blue-500" />
+              ) : (
+                <Check size={14} />
+              )}
+
+              {seenAt && (
+                <span className="ml-2 text-xs text-gray-400">Seen {formatTime(seenAt)}</span>
+              )}
+            </>
           )}
         </div>
       </div>

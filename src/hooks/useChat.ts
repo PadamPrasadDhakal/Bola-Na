@@ -77,7 +77,27 @@ export function useMessages(chatId: string | null) {
     try {
       setIsLoading(true)
       const chatMessages = await messageService.getMessages(chatId)
-      setMessages(chatId, chatMessages)
+
+      // Enrich messages with seen info for messages sent by current user
+      const enriched = await Promise.all(
+        chatMessages.map(async (m) => {
+          if (m.sender_id === user.id) {
+            try {
+              const [count, latest] = await Promise.all([
+                messageService.getMessageSeenCount(m.id),
+                messageService.getLatestSeenAt(m.id),
+              ])
+              return { ...m, seen_by_count: count, last_seen_at: latest }
+            } catch (err) {
+              return { ...m, seen_by_count: 0, last_seen_at: null }
+            }
+          }
+
+          return { ...m, seen_by_count: 0, last_seen_at: null }
+        })
+      )
+
+      setMessages(chatId, enriched)
     } catch (error) {
       console.error('Failed to load messages:', error)
       toast.error('Failed to load messages')

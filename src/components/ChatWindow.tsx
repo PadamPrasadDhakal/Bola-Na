@@ -22,7 +22,7 @@ interface ChatWindowProps {
 
 export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
   const { user } = useAuthStore()
-  const { messages, sendMessage, uploadMedia } = useMessages(chatId)
+  const { messages, loadMessages, sendMessage, uploadMedia } = useMessages(chatId)
   const { sendTypingIndicator } = useRealtimeTyping(chatId)
   const [messageText, setMessageText] = useState('')
   const [media, setMedia] = useState<{ file: File; preview: string; type: 'image' | 'video' | 'file' } | null>(null)
@@ -57,6 +57,10 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
     const timer = setTimeout(markSeen, 500)
     return () => clearTimeout(timer)
   }, [messages, user])
+
+  useEffect(() => {
+    loadMessages()
+  }, [loadMessages])
 
   useEffect(() => {
     scrollToBottom()
@@ -169,6 +173,13 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
                 timestamp={message.created_at}
                 isOwn={message.sender_id === user?.id}
                 isDivided={isDivided}
+                isSeenByAll={
+                  message.sender_id === user?.id
+                    ? ((message as any).seen_by_count || 0) >= Math.max(0, participants.length - 1)
+                    : false
+                }
+                seenAt={(message as any).last_seen_at || null}
+                seenCount={(message as any).seen_by_count || 0}
               />
             )
           })

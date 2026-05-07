@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useChatStore, useAuthStore } from '@/store'
+import { messageService } from '@/services/supabaseService'
 import { supabase } from '@/lib/supabase'
 import { Message } from '@/types'
 import toast from 'react-hot-toast'
@@ -85,9 +86,46 @@ export function useRealtimeMessages(chatId: string | null) {
       )
       .subscribe()
 
+    // Subscribe to message_seen inserts to update seen counts/timestamps
+    const seenSub = supabase
+      .channel(`message_seen:${chatId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'message_seen',
+        },
+        async (payload) => {
+          try {
+            const messageId = payload.new.message_id
+            // Only update if this message belongs to current chat
+            const localMessages = useChatStore.getState().messages[chatId] || []
+            if (!localMessages.some((m) => m.id === messageId)) return
+
+            const [count, latest] = await Promise.all([
+              messageService.getMessageSeenCount(messageId),
+              messageService.getLatestSeenAt(messageId),
+            ])
+
+            // update message in store
+            useChatStore.getState().updateMessage(chatId, messageId, {
+              seen_by_count: count,
+              last_seen_at: latest,
+            })
+          } catch (err) {
+            console.error('Failed to update message seen info:', err)
+          }
+        }
+      )
+      .subscribe()
+
     return () => {
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe()
+      }
+      if (seenSub) {
+        seenSub.unsubscribe()
       }
     }
   }, [chatId, user, addMessage, updateMessage, deleteMessage, setSelectedChat])
