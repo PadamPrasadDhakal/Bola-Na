@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase } from '../lib/supabase'
 import { User, Chat, Message, ChatParticipant } from '@/types'
 
 export const authService = {
@@ -254,20 +254,24 @@ export const messageService = {
     return data as Message
   },
 
-  async markMessageAsSeen(messageId: string, userId: string): Promise<void> {
-    const { error } = await supabase.from('message_seen').insert(
+ async markMessageAsSeen(messageId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('message_seen')
+    .upsert(
       {
         message_id: messageId,
         user_id: userId,
       },
-      { onConflict: 'message_id, user_id' }
+      {
+        onConflict: 'message_id,user_id',
+        ignoreDuplicates: true,
+      }
     )
 
-    // Ignore error if already exists
-    if (error && !error.message.includes('duplicate')) {
-      throw error
-    }
-  },
+  if (error) {
+    throw error
+  }
+},
 
   async getMessageSeenCount(messageId: string): Promise<number> {
     const { count, error } = await supabase

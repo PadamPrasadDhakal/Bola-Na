@@ -12,7 +12,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
   },
-  realtime: {
-    broadcast: { ack: true },
-  },
 })

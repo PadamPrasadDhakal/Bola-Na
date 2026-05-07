@@ -102,7 +102,12 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
       let mediaType: 'image' | 'video' | 'file' | undefined
 
       if (media) {
-        mediaUrl = await uploadMedia(media.file)
+        const uploadedMediaUrl = await uploadMedia(media.file)
+        if (!uploadedMediaUrl) {
+          throw new Error('Failed to upload media')
+        }
+
+        mediaUrl = uploadedMediaUrl
         mediaType = media.type
       }
 
