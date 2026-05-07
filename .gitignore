@@ -4,6 +4,7 @@ node_modules
 .pnp.js
 yarn.lock
 package-lock.json
+pnpm-lock.yaml
 
 # Testing
 /coverage
@@ -13,6 +14,8 @@ package-lock.json
 /out
 /build
 .next
+.vercel
+dist
 
 # Misc
 .DS_Store
@@ -20,11 +23,16 @@ package-lock.json
 .env
 .env.local
 .env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
 
 # IDE
 .vscode
@@ -32,7 +40,45 @@ yarn-error.log*
 *.swp
 *.swo
 *~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
 # OS
 Thumbs.db
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Supabase
+.supabase/
+
+# SQLite & Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Turbo
+.turbo/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+
+# Logs
+logs
+*.log
