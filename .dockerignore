@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+README.md
+DEPLOYMENT.md
+QUICKSTART.md
+SUPABASE_SETUP.md
+API_REFERENCE.md
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.vercel
+coverage
+dist
