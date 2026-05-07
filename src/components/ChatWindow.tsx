@@ -1,18 +1,17 @@
 'use client'
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { useMessages, useChats } from '@/hooks/useChat'
+import React, { useState, useRef, useEffect } from 'react'
+import { useMessages } from '@/hooks/useChat'
 import { useRealtimeMessages, useRealtimeTyping } from '@/hooks/useRealtime'
-import { useAuthStore, useChatStore } from '@/store'
+import { useAuthStore } from '@/store'
 import { supabase } from '@/lib/supabase'
 import { MessageBubble } from './ui/MessageBubble'
 import { Button } from './ui/Button'
-import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
 import { MediaPreview } from './ui/MediaPreview'
-import { Message, User } from '@/types'
-import { scrollToBottom, getMimeType, truncateText } from '@/utils/helpers'
-import { Send, Plus, Smile, Paperclip } from 'lucide-react'
+import { User } from '@/types'
+import { scrollToBottom, getMimeType } from '@/utils/helpers'
+import { Send, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface ChatWindowProps {
@@ -130,7 +129,8 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
       handleSendMessage()
     }
   }
@@ -213,7 +213,7 @@ export function ChatWindow({ chatId, chat, participants }: ChatWindowProps) {
             onChange={handleTyping}
             onKeyDown={handleKeyDown}
             placeholder="Message..."
-            className="flex-1"
+            className="flex-1 text-black placeholder:text-gray-500"
             rows={3}
           />
 

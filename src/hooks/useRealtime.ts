@@ -5,7 +5,7 @@ import { Message } from '@/types'
 import toast from 'react-hot-toast'
 
 export function useRealtimeMessages(chatId: string | null) {
-  const { addMessage, updateMessage, deleteMessage } = useChatStore()
+  const { addMessage, updateMessage, deleteMessage, setSelectedChat } = useChatStore()
   const { user } = useAuthStore()
   const subscriptionRef = useRef<any>(null)
 
@@ -26,6 +26,35 @@ export function useRealtimeMessages(chatId: string | null) {
         (payload) => {
           const newMessage = payload.new as Message
           addMessage(chatId, newMessage)
+
+          // Notify only for incoming messages from other users.
+          if (newMessage.sender_id !== user.id) {
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+              if (Notification.permission === 'default') {
+                Notification.requestPermission().catch(() => {
+                  // Ignore permission request failures.
+                })
+              }
+
+              if (Notification.permission === 'granted') {
+                const bodyText = newMessage.content?.trim() || 'Sent you an attachment'
+                const browserNotification = new Notification('New message in Bola Na', {
+                  body: bodyText,
+                  tag: `chat-${newMessage.chat_id}`,
+                })
+
+                browserNotification.onclick = () => {
+                  window.focus()
+                  setSelectedChat(newMessage.chat_id)
+                  browserNotification.close()
+                }
+              } else {
+                toast('New message received')
+              }
+            } else {
+              toast('New message received')
+            }
+          }
         }
       )
       .on(
@@ -61,7 +90,7 @@ export function useRealtimeMessages(chatId: string | null) {
         subscriptionRef.current.unsubscribe()
       }
     }
-  }, [chatId, user, addMessage, updateMessage, deleteMessage])
+  }, [chatId, user, addMessage, updateMessage, deleteMessage, setSelectedChat])
 }
 
 export function useRealtimeTyping(chatId: string | null) {
