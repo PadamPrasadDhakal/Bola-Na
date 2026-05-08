@@ -159,17 +159,20 @@ export function useRealtimeTyping(chatId: string | null) {
     }
 
     const typingChannel = supabase.channel(`typing:${chatId}:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+    // Capture ref value for cleanup to avoid stale closure
+    const currentTimeoutRef = typingTimeoutRef.current
+    
     typingChannel.on('broadcast', { event: 'typing' }, (payload) => {
         if (payload.payload.user_id !== user.id) {
           addTypingUser(chatId, payload.payload.user_id)
 
           // Clear existing timeout
-          if (typingTimeoutRef.current[payload.payload.user_id]) {
-            clearTimeout(typingTimeoutRef.current[payload.payload.user_id])
+          if (currentTimeoutRef[payload.payload.user_id]) {
+            clearTimeout(currentTimeoutRef[payload.payload.user_id])
           }
 
           // Set new timeout to remove typing indicator
-          typingTimeoutRef.current[payload.payload.user_id] = setTimeout(() => {
+          currentTimeoutRef[payload.payload.user_id] = setTimeout(() => {
             removeTypingUser(chatId, payload.payload.user_id)
           }, 3000)
         }
@@ -181,7 +184,7 @@ export function useRealtimeTyping(chatId: string | null) {
         supabase.removeChannel(subscriptionRef.current)
         subscriptionRef.current = null
       }
-      Object.values(typingTimeoutRef.current).forEach(clearTimeout)
+      Object.values(currentTimeoutRef).forEach(clearTimeout)
     }
   }, [chatId, user, addTypingUser, removeTypingUser])
 

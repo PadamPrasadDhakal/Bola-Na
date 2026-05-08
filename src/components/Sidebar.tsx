@@ -123,7 +123,7 @@ export function Sidebar({ selectedChatId, onSelectChat, onCreateChat }: SidebarP
     }
 
     fetchMissingPreviews()
-  }, [user, chats, chatSummaries])
+  }, [user, chats, chatSummaries, latestMessages])
 
   useEffect(() => {
     const loadDirectChatUsers = async () => {
