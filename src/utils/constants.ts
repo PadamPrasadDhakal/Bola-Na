@@ -27,7 +27,13 @@ export const API_ERRORS = {
 }
 
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-export const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg']
+export const ALLOWED_VIDEO_TYPES = [
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+  'video/quicktime',
+  'video/x-m4v',
+]
 export const ALLOWED_FILE_TYPES = [
   'application/pdf',
   'application/msword',

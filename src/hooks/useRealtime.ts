@@ -9,14 +9,26 @@ export function useRealtimeMessages(chatId: string | null) {
   const { addMessage, updateMessage, deleteMessage, setSelectedChat } = useChatStore()
   const { user } = useAuthStore()
   const subscriptionRef = useRef<any>(null)
+  const seenSubscriptionRef = useRef<any>(null)
 
   useEffect(() => {
     if (!chatId || !user) return
 
+    if (subscriptionRef.current) {
+      supabase.removeChannel(subscriptionRef.current)
+      subscriptionRef.current = null
+    }
+
+    if (seenSubscriptionRef.current) {
+      supabase.removeChannel(seenSubscriptionRef.current)
+      seenSubscriptionRef.current = null
+    }
+
+    const channelSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
     // Subscribe to real-time messages
-    subscriptionRef.current = supabase
-      .channel(`messages:${chatId}`)
-      .on(
+    const messageChannel = supabase.channel(`messages:${chatId}:${channelSuffix}`)
+    messageChannel.on(
         'postgres_changes',
         {
           event: 'INSERT',
@@ -58,7 +70,7 @@ export function useRealtimeMessages(chatId: string | null) {
           }
         }
       )
-      .on(
+    messageChannel.on(
         'postgres_changes',
         {
           event: 'UPDATE',
@@ -71,7 +83,7 @@ export function useRealtimeMessages(chatId: string | null) {
           updateMessage(chatId, updatedMessage.id, updatedMessage)
         }
       )
-      .on(
+    messageChannel.on(
         'postgres_changes',
         {
           event: 'DELETE',
@@ -84,12 +96,11 @@ export function useRealtimeMessages(chatId: string | null) {
           deleteMessage(chatId, deletedMessage.id)
         }
       )
-      .subscribe()
+    subscriptionRef.current = messageChannel.subscribe()
 
     // Subscribe to message_seen inserts to update seen counts/timestamps
-    const seenSub = supabase
-      .channel(`message_seen:${chatId}`)
-      .on(
+    const seenChannel = supabase.channel(`message_seen:${chatId}:${channelSuffix}`)
+    seenChannel.on(
         'postgres_changes',
         {
           event: 'INSERT',
@@ -118,14 +129,16 @@ export function useRealtimeMessages(chatId: string | null) {
           }
         }
       )
-      .subscribe()
+    seenSubscriptionRef.current = seenChannel.subscribe()
 
     return () => {
       if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe()
+        supabase.removeChannel(subscriptionRef.current)
+        subscriptionRef.current = null
       }
-      if (seenSub) {
-        seenSub.unsubscribe()
+      if (seenSubscriptionRef.current) {
+        supabase.removeChannel(seenSubscriptionRef.current)
+        seenSubscriptionRef.current = null
       }
     }
   }, [chatId, user, addMessage, updateMessage, deleteMessage, setSelectedChat])
@@ -140,9 +153,13 @@ export function useRealtimeTyping(chatId: string | null) {
   useEffect(() => {
     if (!chatId || !user) return
 
-    subscriptionRef.current = supabase
-      .channel(`typing:${chatId}`)
-      .on('broadcast', { event: 'typing' }, (payload) => {
+    if (subscriptionRef.current) {
+      supabase.removeChannel(subscriptionRef.current)
+      subscriptionRef.current = null
+    }
+
+    const typingChannel = supabase.channel(`typing:${chatId}:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+    typingChannel.on('broadcast', { event: 'typing' }, (payload) => {
         if (payload.payload.user_id !== user.id) {
           addTypingUser(chatId, payload.payload.user_id)
 
@@ -157,11 +174,12 @@ export function useRealtimeTyping(chatId: string | null) {
           }, 3000)
         }
       })
-      .subscribe()
+    subscriptionRef.current = typingChannel.subscribe()
 
     return () => {
       if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe()
+        supabase.removeChannel(subscriptionRef.current)
+        subscriptionRef.current = null
       }
       Object.values(typingTimeoutRef.current).forEach(clearTimeout)
     }
@@ -171,7 +189,7 @@ export function useRealtimeTyping(chatId: string | null) {
     if (!chatId || !user) return
 
     try {
-      await supabase.channel(`typing:${chatId}`).send({
+      await supabase.channel(`typing:${chatId}:outgoing`).send({
         type: 'broadcast',
         event: 'typing',
         payload: {
@@ -195,25 +213,30 @@ export function useRealtimePresence(chatId: string | null) {
   useEffect(() => {
     if (!chatId || !user) return
 
-    subscriptionRef.current = supabase
-      .channel(`presence:${chatId}`, {
+    if (subscriptionRef.current) {
+      supabase.removeChannel(subscriptionRef.current)
+      subscriptionRef.current = null
+    }
+
+    const presenceChannel = supabase
+      .channel(`presence:${chatId}:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, {
         config: {
           broadcast: { self: true },
           presence: { key: user.id },
         },
       })
-      .on('presence', { event: 'sync' }, () => {
+    presenceChannel.on('presence', { event: 'sync' }, () => {
         const state = subscriptionRef.current.presenceState()
         const onlineUserIds = new Set(Object.keys(state))
         setOnlineUsers(onlineUserIds)
       })
-      .on('presence', { event: 'join' }, ({ key }) => {
+    presenceChannel.on('presence', { event: 'join' }, ({ key }) => {
         addOnlineUser(key)
       })
-      .on('presence', { event: 'leave' }, ({ key }) => {
+    presenceChannel.on('presence', { event: 'leave' }, ({ key }) => {
         removeOnlineUser(key)
       })
-      .subscribe(async (status) => {
+    subscriptionRef.current = presenceChannel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           await subscriptionRef.current.track({
             online_at: new Date().toISOString(),
@@ -223,7 +246,8 @@ export function useRealtimePresence(chatId: string | null) {
 
     return () => {
       if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe()
+        supabase.removeChannel(subscriptionRef.current)
+        subscriptionRef.current = null
       }
     }
   }, [chatId, user, setOnlineUsers, addOnlineUser, removeOnlineUser])

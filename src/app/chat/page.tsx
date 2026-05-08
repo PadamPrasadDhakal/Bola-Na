@@ -60,9 +60,9 @@ export default function ChatPage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex h-dvh overflow-hidden bg-white">
+      <div className="flex h-screen overflow-hidden bg-white">
         {/* Sidebar - desktop only */}
-        <div className="hidden md:flex w-80 flex-col shrink-0">
+        <div className="hidden sm:flex w-80 flex-col shrink-0">
           <Sidebar
             selectedChatId={selectedChatId || ''}
             onSelectChat={handleSelectChat}
@@ -71,7 +71,7 @@ export default function ChatPage() {
         </div>
 
         {/* Mobile chat list or chat view */}
-        <div className="flex-1 min-w-0 md:hidden">
+        <div className="flex-1 min-w-0 sm:hidden">
           {!selectedChatId ? (
             <Sidebar
               selectedChatId=""
@@ -89,7 +89,7 @@ export default function ChatPage() {
         </div>
 
         {/* Desktop chat window */}
-        <div className="hidden md:flex flex-1 min-w-0">
+        <div className="hidden sm:flex flex-1 min-w-0">
           {selectedChatId && currentChat ? (
             <ChatWindow
               chatId={selectedChatId}

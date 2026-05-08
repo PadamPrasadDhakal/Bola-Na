@@ -1,5 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false,
+  serverExternalPackages: ['@supabase/ssr'],
+  // Allow external connections from other devices in the network
+  experimental: {
+    isrMemoryCacheSize: 0,
+  },
+  async rewrites() {
+    return []
+  },
   images: {
     remotePatterns: [
       {
@@ -9,6 +18,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'api.multiavatar.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.fbcdn.net',
       },
     ],
   },

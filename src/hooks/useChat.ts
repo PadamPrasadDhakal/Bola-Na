@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useChatStore, useAuthStore } from '@/store'
 import { chatService, messageService, storageService } from '@/services/supabaseService'
+import { compressVideoTo720p } from '@/utils/videoCompression'
 import toast from 'react-hot-toast'
 
 export function useChats() {
@@ -140,7 +141,11 @@ export function useMessages(chatId: string | null) {
   const uploadMedia = useCallback(
     async (file: File) => {
       try {
-        const url = await storageService.uploadFile(file)
+        const fileToUpload = file.type.startsWith('video/')
+          ? await compressVideoTo720p(file)
+          : file
+
+        const url = await storageService.uploadFile(fileToUpload)
         return url
       } catch (error) {
         console.error('Failed to upload media:', error)

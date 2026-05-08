@@ -11,6 +11,13 @@ import { Textarea } from './ui/Textarea'
 import { MediaPreview } from './ui/MediaPreview'
 import { User } from '@/types'
 import { scrollToBottom, getMimeType } from '@/utils/helpers'
+import {
+  ALLOWED_FILE_TYPES,
+  ALLOWED_IMAGE_TYPES,
+  ALLOWED_VIDEO_TYPES,
+  MAX_FILE_SIZE,
+  MAX_IMAGE_SIZE,
+} from '@/utils/constants'
 import { Send, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -28,9 +35,11 @@ export function ChatWindow({ chatId, chat, participants, onBack }: ChatWindowPro
   const [messageText, setMessageText] = useState('')
   const [media, setMedia] = useState<{ file: File; preview: string; type: 'image' | 'video' | 'file' } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout>()
+  const dragCounterRef = useRef(0)
   const seenMessagesRef = useRef<Set<string>>(new Set())
 
   useRealtimeMessages(chatId)
@@ -81,9 +90,44 @@ export function ChatWindow({ chatId, chat, participants, onBack }: ChatWindowPro
     }, 1000)
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const validateMediaFile = (file: File) => {
+    const type = getMimeType(file)
+    const isSupportedImage = ALLOWED_IMAGE_TYPES.includes(file.type)
+    const isSupportedVideo = ALLOWED_VIDEO_TYPES.includes(file.type)
+    const isSupportedFile = ALLOWED_FILE_TYPES.includes(file.type)
+
+    if (type === 'image' && !isSupportedImage) {
+      toast.error('Unsupported image type')
+      return false
+    }
+
+    if (type === 'video' && !isSupportedVideo) {
+      toast.error('Unsupported video type')
+      return false
+    }
+
+    if (type === 'file' && !isSupportedFile) {
+      toast.error('Unsupported file type')
+      return false
+    }
+
+    if (type === 'image' && file.size > MAX_IMAGE_SIZE) {
+      toast.error('Images must be 10MB or smaller')
+      return false
+    }
+
+    if (type === 'file' && file.size > MAX_FILE_SIZE) {
+      toast.error('Files must be 50MB or smaller')
+      return false
+    }
+
+    return true
+  }
+
+  const handleMediaFile = (file: File | null | undefined) => {
     if (!file) return
+
+    if (!validateMediaFile(file)) return
 
     const type = getMimeType(file)
     const reader = new FileReader()
@@ -94,6 +138,46 @@ export function ChatWindow({ chatId, chat, participants, onBack }: ChatWindowPro
     }
 
     reader.readAsDataURL(file)
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleMediaFile(e.target.files?.[0])
+    e.target.value = ''
+  }
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes('Files')) return
+
+    e.preventDefault()
+    dragCounterRef.current += 1
+    setIsDragOver(true)
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes('Files')) return
+
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes('Files')) return
+
+    e.preventDefault()
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1)
+
+    if (dragCounterRef.current === 0) {
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes('Files')) return
+
+    e.preventDefault()
+    dragCounterRef.current = 0
+    setIsDragOver(false)
+    handleMediaFile(e.dataTransfer.files?.[0])
   }
 
   const handleSendMessage = async () => {
@@ -141,14 +225,29 @@ export function ChatWindow({ chatId, chat, participants, onBack }: ChatWindowPro
   }
 
   return (
-    <div className="flex flex-col h-full md:h-screen bg-white">
+    <div
+      className="relative flex flex-col h-full w-full bg-white"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragOver && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-blue-500/10 backdrop-blur-[1px] border-2 border-dashed border-blue-500 pointer-events-none">
+          <div className="rounded-2xl bg-white px-5 py-4 shadow-lg text-center">
+            <p className="text-base font-semibold text-gray-900">Drop media to send</p>
+            <p className="text-sm text-gray-500 mt-1">Photos, videos, and files upload as a message</p>
+          </div>
+        </div>
+      )}
+
       {/* Chat Header */}
       <div className="flex items-center justify-between gap-3 p-3 sm:p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
         <div className="flex items-center gap-3 min-w-0">
           {onBack && (
             <button
               onClick={onBack}
-              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-700"
+              className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-700"
               aria-label="Back to chats"
             >
               ←
@@ -228,7 +327,7 @@ export function ChatWindow({ chatId, chat, participants, onBack }: ChatWindowPro
             type="file"
             onChange={handleFileSelect}
             className="hidden"
-            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+            accept="image/*,video/*,.mp4,.webm,.ogg,.mov,.m4v,.pdf,.doc,.docx,.xls,.xlsx,.txt"
           />
 
           <Textarea
