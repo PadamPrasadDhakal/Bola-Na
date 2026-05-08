@@ -69,8 +69,8 @@ export async function compressVideoTo720p(
     const capturedStream = canvas.captureStream(30)
     const recordingStream = capturedStream
 
-    const audioTracks = typeof video.captureStream === 'function'
-      ? video.captureStream().getAudioTracks()
+    const audioTracks = typeof (video as any).captureStream === 'function'
+      ? (video as any).captureStream().getAudioTracks()
       : []
 
     for (const track of audioTracks) {

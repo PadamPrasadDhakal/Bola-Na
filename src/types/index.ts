@@ -38,6 +38,9 @@ export interface Message {
   reply_to_message_id: string | null
   created_at: string
   updated_at: string
+  // Optional runtime fields for UI/seen info
+  seen_by_count?: number
+  last_seen_at?: string | null
 }
 
 export interface MessageSeen {

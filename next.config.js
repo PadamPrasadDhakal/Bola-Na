@@ -1,11 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
-  serverExternalPackages: ['@supabase/ssr'],
-  // Allow external connections from other devices in the network
-  experimental: {
-    isrMemoryCacheSize: 0,
-  },
+  reactStrictMode: false,
   async rewrites() {
     return []
   },
